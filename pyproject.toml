@@ -1,0 +1,17 @@
+[project]
+name = "morse"
+version = "0.1.0"
+description = "Morse code audio synth"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.5.0",
+    "sounddevice>=0.5.5",
+]
+
+[project.scripts]
+morse = "morse.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
