@@ -1,7 +1,7 @@
 # morse
 
-Synthesize text into Morse code audio (WAV/MP3 or live playback) and decode
-Morse audio back into text.
+Synthesize text into Morse code audio (WAV/MP3 or live playback), decode Morse
+audio back into text, and broadcast live Tartu weather as Morse.
 
 ## Install
 
@@ -51,16 +51,39 @@ The decoder is self-calibrating: it estimates the dot length from the signal,
 so it handles any speed without being told the WPM. Tuned for synthesized /
 clean tones — noisy microphone recordings are not handled yet.
 
+### Weather broadcast — Tartu weather → Morse
+
+Fetches the latest reading from [meteo.physic.ut.ee](https://meteo.physic.ut.ee)
+and keys it out as Morse. Same tone flags and outfile/loops as `encode`.
+
+```bash
+uv run morse weather              # play the report live
+uv run morse weather wx.wav 1     # write it to a file
+```
+
+Example report (printed to stderr, then broadcast):
+
+```
+WX TARTU 1630Z TEMP 21 HUM 52 PRES 1014 WIND 5 MS NW LAT 58.3664 N LON 26.6907 E
+```
+
+Time is station local, temp °C (`MINUS` prefix below zero), humidity %, pressure
+hPa, wind m/s + 8-point cardinal, `RAIN` when precipitating, then the station
+position in decimal degrees. The table includes `.` and `,`, so it round-trips
+through `decode`.
+
 ### As a library
 
 ```python
-from morse import synth, write_wav, read_audio, decode
+from morse import synth, write_wav, read_audio, decode, weather_report
 
 audio = synth("SOS", 48000, 0.1, 0.008, 0.008, 0.2, 600, 615)
 write_wav("out.wav", audio, 48000)
 
 audio, sr = read_audio("out.wav")
 print(decode(audio, sr))   # -> SOS
+
+print(weather_report())    # -> WX TARTU 1630Z TEMP 21 HUM 52 ...
 ```
 
 ## How it works
@@ -90,6 +113,18 @@ flowchart LR
     G --> H["DEMORSE lookup<br/>-> text"]
 ```
 
+### Weather broadcast
+
+```mermaid
+flowchart LR
+    A["meteo.physic.ut.ee<br/>archive CSV"] --> B["latest_reading<br/>parse last row"]
+    B --> C["report<br/>Morse-safe summary line"]
+    S["STATION lat/lon"] --> X["coordinates<br/>-> decimal degrees"]
+    C --> J["join"]
+    X --> J
+    J --> D["encode pipeline<br/>(synth -> play/file)"]
+```
+
 ### Morse timing
 
 Everything is multiples of one `unit` (the dot length):
@@ -113,7 +148,8 @@ src/morse/
   loader.py     read_audio  (WAV native, MP3 via ffmpeg)
   decode.py     decode  (audio -> text)
   playback.py   play_loop  (live, press q)
-  cli.py        encode / decode subcommands
+  weather.py    fetch + summarize Tartu weather (stdlib urllib)
+  cli.py        encode / decode / weather subcommands
 tests/
   test_roundtrip.py   synth -> decode -> text
 ```

@@ -35,6 +35,8 @@ MORSE = {
     "7": "--...",
     "8": "---..",
     "9": "----.",
+    ".": ".-.-.-",
+    ",": "--..--",
 }
 
 # Reverse map for decoding: ".-" -> "A". Built from MORSE so the two never drift.
